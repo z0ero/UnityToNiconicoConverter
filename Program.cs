@@ -48,10 +48,10 @@ namespace UnityToNiconicoConverter
             {
                 Directory.CreateDirectory(scriptDir);
             }
-            var textDir = Path.Combine(nicoDir, "text");
-            if (!Directory.Exists(textDir))
+            var binaryDir = Path.Combine(nicoDir, "binary");
+            if (!Directory.Exists(binaryDir))
             {
-                Directory.CreateDirectory(textDir);
+                Directory.CreateDirectory(binaryDir);
             }
 
             // スクリプト改変
@@ -59,8 +59,8 @@ namespace UnityToNiconicoConverter
             ReplaceFramework(frameworkJs, scriptDir, Path.GetFileNameWithoutExtension(frameworkPath));
 
             // データ類コピー
-            File.Copy(dataPath, Path.Combine(textDir, Path.GetFileName(dataPath)), true);
-            File.Copy(wasmPath, Path.Combine(textDir, Path.GetFileName(wasmPath)), true);
+            File.Copy(dataPath, Path.Combine(binaryDir, Path.GetFileName(dataPath)), true);
+            File.Copy(wasmPath, Path.Combine(binaryDir, Path.GetFileName(wasmPath)), true);
         }
 
         static void ReplaceLoader(string js, string outDir, string path)
