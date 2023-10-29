@@ -17,8 +17,9 @@ UnityOutputフォルダはBuild.loader.jsファイルなどが含まれるフォ
 
 ニコ生ゲームフォルダはgame.jsonが置かれているフォルダです。
 
-上記コマンドを実行するとニコ生ゲームフォルダのscriptフォルダとtextフォルダ以下に変換されたjsやgzファイルが生成されます。
+上記コマンドを実行するとニコ生ゲームフォルダのscriptフォルダとbinaryフォルダ以下に変換されたjsやgzファイルが生成されます。
 あとはそれらをgame.jsonに追加し、以下のようにloaderスクリプトを起点に読み込めば起動するはずです。
+binaryフォルダ以下のファイルはtextアセットとして追加してください。
 ```javascript
 const loader = require('./Build.loader');
 
