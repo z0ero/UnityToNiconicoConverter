@@ -41,8 +41,7 @@ function main(param) {
             productName: "ゲームの名前",
             productVersion: "1.0.0",
             matchWebGLToCanvasSize: false,
-            showBanner: () => { },
-            audioManager: g.game.resourceFactory._audioManager
+            showBanner: () => { }
         };
 
         const canvas = document.createElement('canvas');
@@ -104,3 +103,6 @@ Unty側のビルド設定はほぼデフォルトで問題ないですが、一�
 
 ## ライセンス
 特にありません。
+
+## 免責事項
+ユーザーが本プログラムを使用したことにより生じた損害等に対して作者は如何なる責任も負わないものとします。

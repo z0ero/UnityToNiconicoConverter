@@ -69,37 +69,40 @@ namespace UnityToNiconicoConverter
             var replacer = new Replacer();
             // スクリプト読み込み関数を丸っと置換
             replacer.AddTask(new ReplaceTask(
-                new TypeMatch(Nodes.BlockStatement) & new AnyChild(
-                        new TypeMatch(Nodes.VariableDeclaration) & new AnyChild(
-                            new TypeMatch(Nodes.VariableDeclarator) & new AnyChild(
-                            new TypeMatch(Nodes.CallExpression) & new AnyChild(
-                                new TypeMatch(Nodes.MemberExpression) & new PropertyCond("Object", new Identity("document")) & new PropertyCond("Property", new Identity("createElement"))
-                                ) & new AnyChild(
-                                    new StringLiteral("script")
+                new TypeMatch(Nodes.CallExpression) & new AnyChild(
+                    new TypeMatch(Nodes.MemberExpression) & new PropertyCond("Object",
+                        new TypeMatch(Nodes.NewExpression) & new PropertyCond("Callee", new Identity("Promise")) & new PropertyCond<NodeList<Expression>>("Arguments",
+                            new AnyNodes<Expression>(new TypeMatch(Nodes.FunctionExpression) & new PropertyCond("Body", new PropertyCond<NodeList<Statement>>("Body",
+                                new AnyNodes<Statement>(new TypeMatch(Nodes.ExpressionStatement) & new AnyChild(
+                                    new TypeMatch(Nodes.SequenceExpression) & new AnyChild(
+                                        new TypeMatch(Nodes.AssignmentExpression) & new PropertyCond("Right", new AnyChild(new Identity("frameworkUrl")))
                                     )
-                            )
-                            )
-                        ),
+                                ))
+                            )))
+                        )
+                    ) & new PropertyCond("Property", new Identity("then"))
+                ),
                 n =>
                 {
-                    var found = (BlockStatement)n;
-                    return found.UpdateWith(NodeList.Create(new Statement[] {
-                        new ExpressionStatement(
-                            new CallExpression(
-                                new Identifier("a"),
-                                NodeList.Create(
-                                    new Expression[]{
-                                        new CallExpression(
-                                            new StaticMemberExpression(
-                                                new Identifier("c"),
-                                                new Identifier("frameworkUrl"),
-                                                false),
-                                            EmptyList<Expression>(),
-                                            false)
-                                    }),
-                                false)
-                            )
-                    }));
+                    var found = (CallExpression)n;
+                    var body = found.Callee.As<StaticMemberExpression>().Object.As<NewExpression>().Arguments.First(exp => exp is FunctionExpression).As<FunctionExpression>().Body.Body;
+                    Identifier config;
+                    foreach (var stat in body)
+                    {
+                        var exps = ((stat as ExpressionStatement)?.Expression as SequenceExpression)?.Expressions;
+                        if (exps == null) continue;
+                        foreach (var exp in exps)
+                        {
+                            if ((exp as AssignmentExpression)?.Right?.As<StaticMemberExpression>().Object is Identifier ident)
+                            {
+                                config = ident;
+                                goto End;
+                            }
+                        }
+                    }
+                    return found;
+                    End:
+                    return found.UpdateWith(new StaticMemberExpression(config, new Identifier("framework"), false), EmptyList<Expression>());
                 }));
 
             // 取得コードの展開処理を挿入
@@ -140,13 +143,13 @@ namespace UnityToNiconicoConverter
 
                     var newStatement = new List<Statement>
                     {
-                            // プログラム先頭に変数宣言追加
-                            new VariableDeclaration(NodeList.Create(
-                                new VariableDeclarator[] {
-                                    new VariableDeclarator(new Identifier("gl"), null),
-                                    new VariableDeclarator(new Identifier("glVersion"), null)
-                                }),
-                                VariableDeclarationKind.Var)
+                        // プログラム先頭に変数宣言追加
+                        new VariableDeclaration(NodeList.Create(
+                            new VariableDeclarator[] {
+                                new VariableDeclarator(new Identifier("gl"), null),
+                                new VariableDeclarator(new Identifier("glVersion"), null)
+                            }),
+                            VariableDeclarationKind.Var)
                     };
                     newStatement.AddRange(program.Body);
                     newStatement.Add(new ExpressionStatement(
@@ -171,16 +174,6 @@ namespace UnityToNiconicoConverter
         {
             var ast = new JavaScriptParser(ParserOptions.Default).ParseScript(js);
             var replacer = new Replacer();
-
-            // エクスポート関数の引数にコンフィグを渡せるようにする
-            replacer.AddTask(new ReplaceTask(
-                new TypeMatch(Nodes.ArrowFunctionExpression),
-                n =>
-                {
-                    var target = (ArrowFunctionExpression)n;
-
-                    return target.UpdateWith(NodeList.Create(new Node[] { new Identifier("config") }), target.Body);
-                }));
 
             // プログラムの最初に自動require防止コードを挿入する
             replacer.AddTask(new ReplaceTask(
@@ -258,7 +251,7 @@ namespace UnityToNiconicoConverter
                         )
                         );
 
-                    var audioManager = new StaticMemberExpression(new Identifier("config"), new Identifier("audioManager"), false);
+                    var audioManager = new StaticMemberExpression(new StaticMemberExpression(new Identifier("g"), new Identifier("game"), false), new StaticMemberExpression(new Identifier("resourceFactory"), new Identifier("_audioManager"), false), false);
                     var setMasterVolume = new Identifier("setMasterVolume");
                     initializes.Add(new VariableDeclaration(
                         NodeList.Create(new VariableDeclarator[]{
@@ -339,16 +332,6 @@ namespace UnityToNiconicoConverter
                 }, ReplaceTask.Phase.Post));
 
             ast = (Script)replacer.Visit(ast)!;
-
-            // エクスポートをオブジェクトではなく関数にする
-            replacer.AddTask(new ReplaceTask(
-                new TypeMatch(Nodes.VariableDeclarator) & new PropertyCond("Id", new Identity("unityFramework")),
-                n =>
-                {
-                    var target = (VariableDeclarator)n;
-                    return target.UpdateWith(target.Id, target.Init?.As<CallExpression>().Callee);
-                },
-                ReplaceTask.Phase.Post));
 
             // wasmの読み込み処理を独自のものに差し替え
             replacer.AddTask(new ReplaceTask(
