@@ -32,7 +32,7 @@ function main(param) {
         // Unity側に渡すコンフィグデータを作成
         var config = {
             dataUrl: g.game._assetManager.configuration['Build.data'].path,
-            frameworkUrl: function () {
+            framework: function () {
                 return require('./Build.framework')(this);
             },
             codeUrl: g.game._assetManager.configuration['Build.wasm'].path,
