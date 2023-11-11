@@ -13,7 +13,7 @@ UnityToNiconicoConverter.slnを開いてビルドするだけです。
 ```
 UnityToNiconicoConverter.exe "UnityOutputフォルダ" "ニコ生ゲームフォルダ"
 ```
-UnityOutputフォルダはBuild.loader.jsファイルなどが含まれるフォルダです。
+UnityOutputフォルダはBuild.loader.jsファイルなどが含まれるフォルダです。Unityから書き出す際のフォルダ名は必ずBuildにしてください。
 
 ニコ生ゲームフォルダはgame.jsonが置かれているフォルダです。
 
